@@ -13,6 +13,7 @@ library(tidyverse)
 library(forecast)
 library(tseries)
 library(readxl)
+library(lubridate)
 ```
 
 ## Data set information  
@@ -103,14 +104,54 @@ mean_sd_results
 
 ## Question 4
 
-Display and interpret the time series plot for each of these variables. Try to make your plot as informative as possible by writing titles, labels, etc. For each plot add a horizontal line at the mean of each series in a different color.
+Display and interpret the time series plot for each of these variables.
+
+For this question, I decided to make a faceted plot and denote the mean value
+of each time series with a dashed black line. A few observations are
+apparent:
+
+- While Total `Renewable Energy Production` and `Total Biomass Energy Production`
+rose substantially from 1973-2021, `Hydroelectric Power Consumption` decreased
+- Given the rise of `Total Biomass Energy Production` and the stagnation of
+`Hydroelectric Power Consumption`, the mean biomass production is greater than
+the mean hydroelectric consumption over the given time period. The mean value
+of `Total Renewable Energy Production` is obviously the highest of the three 
+categories shown, given that the biomass and hydroelectric variables are two
+of the inputs of the sum that produces `Total Renewable Energy Production`
+- The gap between `Renewable Energy Production` and 
+`Total Biomass Energy Production` + `Hydroelectric Power Consumption` grew
+over time, denoting the rise of other renewable energy technologies (e.g., 
+wind, solar)
 
 ```{r question-4}
+# Create dataframe with means
+mean_df <- data.frame(name = c('Biomass', 'Renewables', 'Hydro'), 
+                      means = mean_sd_results[1,])
 
+# Generate requested plot
+data %>% 
+  select(Month, 'Total Biomass Energy Production',
+         'Total Renewable Energy Production',
+         'Hydroelectric Power Consumption') %>% 
+  rename(Biomass = 'Total Biomass Energy Production',
+         Renewables = 'Total Renewable Energy Production',
+         Hydro = 'Hydroelectric Power Consumption') %>% 
+  pivot_longer(cols = !Month) %>%
+  mutate(Month = ymd(Month), value = as.numeric(value)) %>% 
+  ggplot(mapping = aes(x = Month, y = value, color = name)) +
+  geom_line() +
+  facet_grid(name~.) +
+  geom_hline(data = mean_df, mapping = aes(yintercept = means),
+             color = 'black', linetype = 2) +
+  labs(x = 'Time', y = 'Production / Consumption [Trillion BTU]', 
+       title = 'Biomass and Renewable Production, Hydro Consumption') +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "None") 
 ```
 
 
 ## Question 5
+
 Compute the correlation between these three series. Are they significantly correlated? Explain your answer.
 
 ```{r question-5}
@@ -119,6 +160,7 @@ Compute the correlation between these three series. Are they significantly corre
 
 
 ## Question 6
+
 Compute the autocorrelation function from lag 1 up to lag 40 for these three variables. What can you say about these plots? Do the three of them have the same behavior?
 
 ```{r question-6}
@@ -127,6 +169,7 @@ Compute the autocorrelation function from lag 1 up to lag 40 for these three var
 
 
 ## Question 7
+
 Compute the partial autocorrelation function from lag 1 to lag 40 for these three variables. How these plots differ from the ones in Q6?
 
 ```{r question-7}
