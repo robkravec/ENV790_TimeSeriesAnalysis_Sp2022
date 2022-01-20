@@ -33,8 +33,6 @@ data <- read_excel(path = file_path, sheet = "Monthly Data", skip = 10,
                    na = "Not Available")
 
 # Remove first row, which contains units for each column
-# Remove second row, which does not specify a date for the data (though Jan 
-# 1973 seems likely)
 data <- data[-1, ]
 ```
 
@@ -165,12 +163,13 @@ a strong positive correlation, which is consistent with our previous observation
 that `Total Renewable Energy Production` and `Total Biomass Energy Production`
 both rose substantially from 1973-2021. `Hydroelectric Power Consumption`
 and `Total Biomass Energy Production` have a weak negative correlation, which
-also makes sense given moderate rise in biomass production and slow fall in 
+also makes sense given the moderate rise in biomass production and slow fall in 
 hydroelectric consumption. `Hydroelectric Power Consumption` and 
 `Total Renewable Energy Production` have a very weak negative correlation, 
 bordering on no correlation at all. This
 result is less intuitive for me, as I would have expected a slightly stronger
-negative correlation. 
+negative correlation between these two variables (based on the plot in Question
+5). 
 
 ## Question 6
 
@@ -226,11 +225,12 @@ three variables. How do these plots differ from the ones in Q6?
 
 Given that acf and pacf are the same for lag 1, the lag 1 values in the pacf
 plots are still quite high. However, the magnitude of subsequent lags is much
-smaller in all three facets due to the nature in which pacf controls for the 
+smaller in all three plots due to the nature in which pacf controls for the 
 effect of shorter lags during calculation. We also note that the pacf plots
 for `Total Renewable Energy Production` and `Total Biomass Energy Production`
-look most similar, but the pacf plot for 
-`Hydroelectric Power Consumption` does not look so drastically different.
+look most similar. The pacf plot for 
+`Hydroelectric Power Consumption` does not look as different from the other two
+plots as was the case for the acf plots.
 
 ```{r question-7}
 # Create function for pacf plots
