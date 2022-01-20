@@ -14,6 +14,7 @@ library(forecast)
 library(tseries)
 library(readxl)
 library(lubridate)
+library(patchwork)
 ```
 
 ## Data set information  
@@ -110,7 +111,7 @@ For this question, I decided to make a faceted plot and denote the mean value
 of each time series with a dashed black line. A few observations are
 apparent:
 
-- While Total `Renewable Energy Production` and `Total Biomass Energy Production`
+- While `Total Renewable Energy Production` and `Total Biomass Energy Production`
 rose substantially from 1973-2021, `Hydroelectric Power Consumption` decreased
 - Given the rise of `Total Biomass Energy Production` and the stagnation of
 `Hydroelectric Power Consumption`, the mean biomass production is greater than
@@ -152,28 +153,111 @@ data %>%
 
 ## Question 5
 
-Compute the correlation between these three series. Are they significantly correlated? Explain your answer.
+Compute the correlation between these three series. Are they significantly 
+correlated? Explain your answer.
 
 ```{r question-5}
-
+cor(data_ts)
 ```
 
+`Total Renewable Energy Production` and `Total Biomass Energy Production` have
+a strong positive correlation, which is consistent with our previous observation
+that `Total Renewable Energy Production` and `Total Biomass Energy Production`
+both rose substantially from 1973-2021. `Hydroelectric Power Consumption`
+and `Total Biomass Energy Production` have a weak negative correlation, which
+also makes sense given moderate rise in biomass production and slow fall in 
+hydroelectric consumption. `Hydroelectric Power Consumption` and 
+`Total Renewable Energy Production` have a very weak negative correlation, 
+bordering on no correlation at all. This
+result is less intuitive for me, as I would have expected a slightly stronger
+negative correlation. 
 
 ## Question 6
 
-Compute the autocorrelation function from lag 1 up to lag 40 for these three variables. What can you say about these plots? Do the three of them have the same behavior?
+Compute the autocorrelation function from lag 1 up to lag 40 for these 
+three variables. What can you say about these plots? Do the three of them 
+have the same behavior?
+
+For this question, I'll assume that the lags should be in terms of 40
+months, not 40 years.
+
+A few observations:
+
+- Lag 1 autocorrelation is quite high for all three variables
+- `Total Renewable Energy Production` and `Total Biomass Energy Production` have
+similar shapes to their acf plots, which show relatively high autocorrelation
+all the way out to 40 months (with a slow decline in acf as lag increases)
+- `Hydroelectric Power Consumption` acf has more of a cyclical pattern to it,
+suggesting there may be some seasonality at play
 
 ```{r question-6}
+# Create function for acf plots
+plot_acf <- function(ts, col_num, lag_amt, xlab, title) {
+  # Generate acf data
+  acf_data <- data.frame(lag = 1:lag_amt, 
+                       acf = acf(ts[,col_num], 
+                                 plot = F, 
+                                 lag.max = lag_amt)$acf[2:(lag_amt + 1)])
+  
+  # Generate and return plot
+  plt <- ggplot(data = acf_data, mapping = aes(x = lag, y = acf)) + 
+    geom_bar(stat = 'identity') +
+    labs(x = xlab, y = 'acf', title = title) +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5))  
+  
+  return(plt)
+}
 
+# Make acf plots
+biomass_plt <- plot_acf(data_ts, 1, 40, '', 'Biomass')
+hydro_plt <- plot_acf(data_ts, 3, 40, '', 'Hydroelectric')
+renewable_plt <- plot_acf(data_ts, 2, 40, 'Lag [months]', 'Renewables')
+
+# Use patchwork to assemble
+biomass_plt / hydro_plt / renewable_plt
 ```
 
 
 ## Question 7
 
-Compute the partial autocorrelation function from lag 1 to lag 40 for these three variables. How these plots differ from the ones in Q6?
+Compute the partial autocorrelation function from lag 1 to lag 40 for these 
+three variables. How do these plots differ from the ones in Q6?
+
+Given that acf and pacf are the same for lag 1, the lag 1 values in the pacf
+plots are still quite high. However, the magnitude of subsequent lags is much
+smaller in all three facets due to the nature in which pacf controls for the 
+effect of shorter lags during calculation. We also note that the pacf plots
+for `Total Renewable Energy Production` and `Total Biomass Energy Production`
+look most similar, but the pacf plot for 
+`Hydroelectric Power Consumption` does not look so drastically different.
 
 ```{r question-7}
+# Create function for pacf plots
+plot_pacf <- function(ts, col_num, lag_amt, xlab, title) {
+  # Generate pacf data
+  pacf_data <- data.frame(lag = 1:lag_amt, 
+                       pacf = pacf(ts[,col_num], 
+                                 plot = F, 
+                                 lag.max = lag_amt)$acf)
+  
+  # Generate and return plot
+  plt <- ggplot(data = pacf_data, mapping = aes(x = lag, y = pacf)) + 
+    geom_bar(stat = 'identity') +
+    labs(x = xlab, y = 'pacf', title = title) +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5))  
+  
+  return(plt)
+}
 
+# Make acf plots
+biomass_p_plt <- plot_pacf(data_ts, 1, 40, '', 'Biomass')
+hydro_p_plt <- plot_pacf(data_ts, 3, 40, '', 'Hydroelectric')
+renewable_p_plt <- plot_pacf(data_ts, 2, 40, 'Lag [months]', 'Renewables')
+
+# Use patchwork to assemble
+biomass_p_plt / hydro_p_plt / renewable_p_plt
 ```
 
 
