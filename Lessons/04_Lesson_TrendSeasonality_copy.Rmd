@@ -183,7 +183,7 @@ Now let's shift attention to the seasonal component.
 
 ```{r}
 #Let's choose another HP
-iHP=1
+iHP=4
 
 #Use seasonal means model
 #First create the seasonal dummies
