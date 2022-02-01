@@ -1,0 +1,396 @@
+---
+title: "ENV 790.30 - Time Series Analysis for Energy Data | Spring 2022"
+subtitle: "Assignment 3 - Due date 02/08/22"
+author: "Rob Kravec"
+output: pdf_document
+geometry: margin=2.54cm
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(echo = TRUE,
+                      tidy.opts=list(width.cutoff=80), tidy=FALSE,
+                      warning = F, message = F) 
+```
+
+## Questions 
+
+Consider the same data you used for A2. 
+The data comes from the US Energy Information and Administration and 
+corresponds to the January 2022 **Monthly** Energy Review. Once again you will 
+work only with the following columns: Total Biomass Energy Production, 
+Total Renewable Energy Production, Hydroelectric Power Consumption. 
+Create a data frame structure with these three time series only. 
+
+R packages needed for this assignment:"forecast","tseries", and "Kendall". 
+Install these packages, if you haven't done yet. Do not forget to load them 
+before running your script, since they are NOT default packages.
+
+```{r load-packages}
+library(tidyverse)
+library(forecast)
+library(Kendall)
+library(tseries)
+library(readxl)
+library(patchwork)
+```
+
+First, I'll create the time series object requested, pulling code from A02.
+
+```{r create-ts}
+# Read in data
+file_path = paste0('../Data/Table_10.1_Renewable_Energy_Production_and', 
+                   '_Consumption_by_Source.xlsx')
+data <- read_excel(path = file_path, sheet = "Monthly Data", skip = 10, 
+                   na = "Not Available")
+
+# Remove first row, which contains units for each column
+data <- data[-1, ]
+
+# Rename relevant columns
+data <- data %>% 
+  rename(Biomass_prod = 'Total Biomass Energy Production',
+         Renewable_prod = 'Total Renewable Energy Production',
+         Hydro_consumption = 'Hydroelectric Power Consumption')
+
+# Select columns
+data_small <- data %>% 
+  select(Biomass_prod, Renewable_prod,
+         Hydro_consumption) 
+
+# Convert data types to numeric
+data_small <- sapply(data_small, as.numeric) %>% 
+  as_tibble()
+
+# Create df for plotting
+plot_df <- cbind(Month = data$Month, data_small)
+
+# Create ts object
+data_ts <- ts(data = data_small, start = c(1973, 1), end = c(2021, 9), 
+              frequency = 12)
+
+# Show first 6 rows of ts object
+head(data_ts)
+```
+
+
+## Trend Component
+
+### Q1
+
+Create a plot window that has one row and three columns. And then for each 
+object on your data frame, fill the plot window with time series plot, ACF 
+and PACF. You may use the some code form A2, but I want all three plots on the 
+same window this time. (Hint: use par() function)
+
+```{r q1}
+# Define functions to create desired plot panel
+plot_acf <- function(ts, lag_amt, title = "ACF") {
+  # Prepare data
+  acf_data <- data.frame(lag = 1:lag_amt, 
+                       acf = Acf(ts, lag.max = lag_amt, 
+                                 plot = F)$acf[2:(lag_amt + 1)])
+  
+  # Create plot
+  acf_plt <- ggplot(data = acf_data, mapping = aes(x = lag, y = acf)) + 
+    geom_bar(stat = 'identity') +
+    labs(x = 'Lag', y = '', title = title) +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.title.y = element_blank())
+  
+  # Return plot
+  return(acf_plt)
+}
+
+plot_pacf <- function(ts, lag_amt, title = "PACF") {
+  # Prepare data
+  pacf_data <- data.frame(lag = 1:lag_amt, 
+                       pacf = pacf(ts, 
+                                 plot = F, 
+                                 lag.max = lag_amt)$acf)
+  
+  # Create plot
+  pacf_plt <- ggplot(data = pacf_data, mapping = aes(x = lag, y = pacf)) + 
+    geom_bar(stat = 'identity') +
+    labs(x = 'Lag', y = '', title = title) +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.title.y = element_blank()) 
+  
+  # Return plot
+  return(pacf_plt)
+}
+
+
+plt_three <- function(plot_df, col_num, lag_amt, ts_y_lab) {
+  # Designate column of interest for time series plot
+  plot_df <- plot_df %>% 
+    mutate(ts_plot = plot_df[, col_num])
+  
+  # Create time series plot
+  ts_plt <- ggplot(data = plot_df, mapping = aes(x = Month, y = ts_plot)) +
+    geom_line() +
+    labs(x = 'Date', y = ts_y_lab, 
+         title = 'Time Series Plot') +
+    theme_bw() + 
+    theme(plot.title = element_text(hjust = 0.5))
+  
+  # Create ACF plot
+  acf_plt <- plot_acf(plot_df[, col_num], lag_amt)
+  
+  # Create PACF plot
+  pacf_plt <- plot_pacf(plot_df[, col_num], lag_amt) 
+  
+  # Return all 3 plots in a single row using patchwork syntax
+  return(ts_plt + acf_plt + pacf_plt)
+}
+```
+
+```{r q1-ii, fig.height = 3}
+# Create requested plot panels
+plt_three(plot_df, 2, 40, 'Biomass production [Trillion BTU]')
+plt_three(plot_df, 3, 40, 'Renewable production [Trillion BTU]')
+plt_three(plot_df, 4, 40, 'Hydropower consumption [Trillion BTU]')
+```
+
+### Q2
+
+From the plot in Q1, do the series Total Biomass Energy Production, 
+Total Renewable Energy Production, Hydroelectric Power Consumption appear to 
+have a trend? If yes, what kind of trend?
+
+`Biomass production` and `Renewable production` appear to have a strong positive
+trend, while `Hydropower consumption` appears to have a weak negative trend. 
+From the results in `Q4`, we can describe these trends as deterministic
+trends, since they can all be modeled effectively by a single straight line.
+By "effectively," I mean that the detrended series have approximately 
+horizontal trend lines near y = 0.
+
+### Q3
+
+Use the *lm()* function to fit a linear trend to the three time series. 
+Ask R to print the summary of the regression. Interpret the regression 
+output, i.e., slope and intercept. Save the regression coefficients for 
+further analysis.
+
+```{r q3}
+# Define time vector
+t <- 1:nrow(data)
+
+# Initialize dataframe with output from regressions
+df_q3 <- data.frame(Intercept = c(0, 0, 0),
+                    Slope = c(0, 0, 0),
+                    row.names = c("Biomass", "Renewables", "Hydro"))
+
+# Perform regressions and print summaries, as instructed
+for (i in 1:3) {
+  model <- lm(data_ts[, i] ~ t)
+  print(colnames(data_ts)[i])
+  print(summary(model))
+  df_q3[i, 1] <- summary(model)$coefficients[1]
+  df_q3[i, 2] <- summary(model)$coefficients[2]
+}
+
+# Display results in tabular format
+df_q3
+```
+
+Regression interpretation:
+
+- **Biomass**: Starts at `r round(df_q3[1, 1], 3)` Trillion BTU in Jan 1973 and 
+increases
+by `r round(df_q3[1, 2], 3)` Trillion BTU each month
+- **Renewables**: Starts at `r round(df_q3[2, 1], 3)` Trillion BTU in Jan 1973 
+and increases
+by `r round(df_q3[2, 2], 3)` Trillion BTU each month
+- **Hydropower**: Starts at `r round(df_q3[3, 1], 3)` Trillion BTU in Jan 1973 
+and decreases
+by `r -round(df_q3[3, 2], 3)` Trillion BTU each month
+
+### Q4
+
+Use the regression coefficients from Q3 to detrend the series. Plot the 
+detrended series and compare with the plots from Q1. What happened? 
+Did anything change?
+
+Below, I plot the original time series and detrended time series (both with 
+trend lines) for the 3 variables of interest. For each we see evidence of 
+deterministic trends, given that the detrended series have approximately
+horizontal trend lines near y = 0. 
+
+There still do appear to be some patterns in the detrended data (e.g., cycles over
+long time horizons for `biomass production`, seasonal variation for
+`hydropower consumption`), but there is at least no longer a clear up/downward
+trend in each series
+
+```{r q4, fig.height = 2.5}
+# Generate plots in a loop
+for (i in 1:3) {
+  
+  # Detrend series (and save results for next exercise)
+  detrended <- data_ts[, i] - (t * df_q3[i, 2] + df_q3[i, 1])
+  detrended_name <- paste0("detrended", i)
+  assign(detrended_name, detrended)
+  
+  # Create dataframe for plotting
+  plot_df_4 <- data.frame(Month = data$Month,
+                          Original = data_ts[, i] %>% as.numeric(),
+                          Detrended = detrended %>% as.numeric()) 
+  
+  # Generate plot
+  plt <- ggplot(data = plot_df_4, mapping = aes(x = Month)) +
+    geom_line(mapping = aes(y = Original, color = "Original")) +
+    geom_smooth(mapping = aes(y = Original), method = 'lm', color = 'black',
+                se = F, linetype = 2) +
+    geom_line(mapping = aes(y = Detrended, color = "Detrended")) +
+    geom_smooth(mapping = aes(y = Detrended), method = 'lm', color = 'black',
+                se = F, linetype = 2) +
+    labs(x = "Date", 
+         title = paste0(colnames(data_small[, i]), " [Trillion BTU]"), 
+         color = "Series") +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5), axis.title.y = element_blank())
+  
+  # Display plot
+  print(plt)
+}
+```
+
+
+### Q5
+
+Plot ACF and PACF for the detrended series and compare with the plots from 
+Q1. Did the plots change? How?
+
+For this question, I create a 2x2 grid of plots for each variable of interest,
+where the top row of each grid shows the original ACF and PACF plots, while 
+the bottom row shows the detrended ACF and PACF plots.
+
+Some observations:
+
+- For all three variables, detrended ACF values appear to be slightly lower than 
+original ACF values
+- It is more challenging to diagnose a consistent difference in PACF (aside
+from lag 1). I can at least say that the PACF plots
+look different after detrending and that I'm unable to pick up on a 
+pattern
+- Seasonal components appear more pronounced after detrending. This effect
+is particularly clear for the detrended `renewables` plot but is present for 
+all three variables
+
+```{r q5, fig.height = 4}
+# Create lists that enable plotting in a loop
+dfs_5 <- list(detrended1, detrended2, detrended3)
+name_list <- c("Biomass", "Renewables", "Hydro")
+
+# Make plots
+for (i in 1:3) {
+  print((plot_acf(data_ts[, i], 40, paste0("Original ACF - ", name_list[i])) +
+     plot_pacf(data_ts[, i], 40, paste0("Original PACF - ", name_list[i]))) /
+    (plot_acf(dfs_5[[i]], 40, paste0("Detrended ACF - ", name_list[i])) + 
+       plot_pacf(dfs_5[[1]], 40, paste0("Detrended PACF - ", name_list[i])))) 
+}
+```
+
+## Seasonal Component
+
+Set aside the detrended series and consider the original series again from Q1 
+to answer Q6 to Q8.
+
+### Q6
+
+Do the series seem to have a seasonal trend? Which series? Use function 
+*lm()* to fit a seasonal means model (i.e. using the seasonal dummies) to 
+this/these time series. Ask R to print the summary of the regression. Interpret 
+the regression output. Save the regression coefficients for further analysis.
+
+Based on the original ACF plots, it's clear that `Hydropower` contains a 
+seasonal trend. I originally wasn't sure whether `Renewables` contained a 
+seasonal trend, so I fit a seasonal means model (not shown), and none of the
+coefficients had a p-value less than 0.05, indicating an absence of seasonal
+trend. I then repeated the exercise for `Biomass`, really just for fun, and
+found the same result. Therefore, the output and plots shown below pertain
+to the `Hydropower` series.
+
+Additionally, I noted in `Q5` that the detrended series appeared to have more
+accentuated seasonal trends than the original series. I generated seasonal 
+means models for detrended `Renewables` and `Biomass` series (also not shown),
+and some of the coefficients had significant p-values.
+
+Interpreting the `Hydropower` regression output, the `Intercept` term 
+corresponds to the 
+mean value for December, and all other coefficients are adjustments from 
+that baseline. Using a p-value threshold of $\alpha = 0.05$, we observe 
+hydropower consumption significantly above the December baseline in January
+and Mar-Jun. We also observe hydropower consumption significantly below the 
+December baseline in Aug-Nov. These results indicate the likely presence of
+a seasonal trend.
+
+```{r q6}
+# Fit model, and display summary
+i <- 3
+dummies <- seasonaldummy(data_ts[, i])
+model <- lm(data_ts[, i] ~ dummies)
+summary(model)
+
+# Save regression coefficients
+q6_coef <- summary(model)$coefficients[,1]
+```
+
+### Q7
+
+Use the regression coefficients from Q6 to deseason the series. Plot the 
+deseason series and compare with the plots from part Q1. Did anything change?
+
+The deseasoned `hydropower` series definitely has less of the predictable 
+choppiness that characterizes the seasonal trend in the original series. The
+overall shape (e.g., sustained higher levels 1995-2000) and negative trend of 
+the original series is maintained in the deseasoned version.
+
+```{r q7, fig.height = 2.5}
+# Deseason hydropower consumption time series
+seasonal_component <- dummies %*% q6_coef[2:12] + q6_coef[1]
+deseasoned <- data_small[, 3] - seasonal_component
+colnames(deseasoned) <- "Deseasoned"
+
+# Create dataframe for plotting
+plot_df_7 <- cbind(plot_df, deseasoned)
+
+# Plot time series on same plot
+ggplot(data = plot_df_7, mapping = aes(x = Month)) +
+    geom_line(mapping = aes(y = Hydro_consumption, color = "Original")) +
+    geom_smooth(mapping = aes(y = Hydro_consumption), 
+                method = 'lm', color = 'black',
+                se = F, linetype = 2) +
+    geom_line(mapping = aes(y = Deseasoned, color = "Deseasoned")) +
+    geom_smooth(mapping = aes(y = Deseasoned), method = 'lm', color = 'black',
+                se = F, linetype = 2) +
+    labs(x = "Date", 
+         title = "Hydropower Consumption [Trillion BTU]", 
+         color = "Series") +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5), axis.title.y = element_blank())
+```
+
+### Q8
+
+Plot ACF and PACF for the deseason series and compare with the plots from Q1. 
+Did the plots change? How?
+
+Yes, the plots changed a lot! The wave-like appearance in the original ACF plot
+is essentially gone in the deseasoned ACF plot. The deseasoned series
+has lower PACF values overall without any discernable wave-like pattern, 
+suggesting that the vast majority of partial autocorrelation is coming from 
+lag one.
+
+```{r q8, fig.height = 4}
+(plot_acf(plot_df_7[, 4], 40, "Original ACF - Hydro") +
+     plot_pacf(plot_df_7[, 4], 40, "Original PACF - Hydro")) /
+    (plot_acf(plot_df_7[, 5], 40, "Deseasoned ACF - Hydro") + 
+       plot_pacf(plot_df_7[, 5], 40, "Deseasoned PACF - Hydro"))
+```
+
+
+
