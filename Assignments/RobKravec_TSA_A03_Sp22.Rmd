@@ -162,11 +162,31 @@ Total Renewable Energy Production, Hydroelectric Power Consumption appear to
 have a trend? If yes, what kind of trend?
 
 `Biomass production` and `Renewable production` appear to have a strong positive
-trend, while `Hydropower consumption` appears to have a weak negative trend. 
-From the results in `Q4`, we can describe these trends as deterministic
-trends, since they can all be modeled effectively by a single straight line.
-By "effectively," I mean that the detrended series have approximately 
-horizontal trend lines near y = 0.
+trend, while `Hydropower consumption` appears to have a weak negative trend.
+
+I can use stationarity tests to determine what types of trends the data contains, 
+starting with the augmented Dickey-Fuller test to check for stochastic trends.
+
+I only reject the null hypothesis (at a cutoff of $\alpha = 0.05$) for 
+`Hydropower consumption`, suggesting that `Biomass production` and 
+`Renewable production` contain a unit root (i.e., have a stochastic trend).
+
+```{r q2-adf}
+name_list <- c("Biomass", "Renewables", "Hydro")
+for (i in 1:3) {
+  print(name_list[i])
+  print(adf.test(data_ts[, i],alternative = "stationary"))
+}
+```
+
+Next, I'll use the Seasonal Mann-Kendall test to check for a deterministic 
+trend in the `Hydropower consumption` series.
+
+Clearly, there is a deterministic trend for the `Hydropower consumption` series.
+
+```{r q2-smk}
+print(summary(SeasonalMannKendall(data_ts[, 3])))
+```
 
 ### Q3
 
@@ -216,8 +236,8 @@ detrended series and compare with the plots from Q1. What happened?
 Did anything change?
 
 Below, I plot the original time series and detrended time series (both with 
-trend lines) for the 3 variables of interest. For each we see evidence of 
-deterministic trends, given that the detrended series have approximately
+trend lines) for the 3 variables of interest. For each, the detrended series 
+have approximately
 horizontal trend lines near y = 0. 
 
 There still do appear to be some patterns in the detrended data (e.g., cycles over
@@ -283,7 +303,6 @@ all three variables
 ```{r q5, fig.height = 4}
 # Create lists that enable plotting in a loop
 dfs_5 <- list(detrended1, detrended2, detrended3)
-name_list <- c("Biomass", "Renewables", "Hydro")
 
 # Make plots
 for (i in 1:3) {
