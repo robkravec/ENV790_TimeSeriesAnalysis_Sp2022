@@ -147,7 +147,7 @@ t <- c(1:nobs)
 
 #Choose one hydro plant to study, as an exercise try to generalize this routine for all 15 HP
 #from the plot HP4 seems to have a trend so let's play with that column
-iHP=4  #change this to chekc other HP
+iHP=7  #change this to chekc other HP
 #prep_data <- data.frame("Inflow"=inflow_data[,iHP],"Time"=t)
 
 #Fit a linear trend to TS of iHP
@@ -248,7 +248,7 @@ inflow_data_new <- cbind(my_date, ts_inflow_data)
 Some test only work for non-seasonal data. SO let's create another series with yearly averages for inflow.
 
 ```{r}
-iHP=1
+iHP=7
 #Group data in yearly steps instances
 inflow_data_matrix <- matrix(ts_inflow_data[,iHP],byrow=FALSE,nrow=12)
 inflow_data_yearly <- colMeans(inflow_data_matrix)
@@ -314,4 +314,18 @@ print(adf.test(inflow_data_yearly, alternative = "stationary"))
 ##Exercise
 
 Run the stationarity tests for the other variables HP2, HP3, ...
+
+```{r hp7}
+iHP <- 7
+# SMK
+SMKtest <- SeasonalMannKendall(ts_inflow_data[,iHP])
+print("Results for Seasonal Mann Kendall /n")
+print(summary(SMKtest))
+# Spearman
+sp_rho=cor.test(inflow_data_yearly,my_year,method="spearman")
+print(sp_rho)
+# ADF
+print(adf.test(ts_inflow_data[,iHP],alternative = "stationary"))
+```
+
 
