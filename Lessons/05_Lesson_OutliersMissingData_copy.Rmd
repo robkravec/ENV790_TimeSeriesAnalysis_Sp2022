@@ -150,6 +150,10 @@ cat(mean_inflow,sd_inflow)
 
 
 ```
+
+Note that the random component has mean close to zero, which is what we would
+expect after detrending and deseasoning.
+
 ## Missing observations
 
 The decompose function introduced NAs in the beginning and end of the data set. Let's just remove them. NAs on the tails can be simply removed.

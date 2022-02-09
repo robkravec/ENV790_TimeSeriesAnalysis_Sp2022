@@ -81,7 +81,7 @@ tsclean() from package 'forecast' identify and replace outliers and missing valu
 
 clean_wind_data <- tsclean(ts_wind_data)  #object should be a time series
 
-full_wind_data <- data_frame(Date=wind_data$DATE, Wind = wind_data$AWND.1, Wind_Clean = as.numeric(clean_wind_data))
+full_wind_data <- data.frame(Date=wind_data$DATE, Wind = wind_data$AWND.1, Wind_Clean = as.numeric(clean_wind_data))
 
 ggplot(full_wind_data) +
   geom_line(aes(x = Date, y = Wind_Clean), color = "red") +
@@ -110,17 +110,21 @@ Additional info on decompose()
 
 ```{r}
 #Ex1: Using R decompose function decompose the wind data in seasonal, trend and random
-
+wind_decomposed <- decompose(clean_wind_data)
+plot(wind_decomposed)
 
 #Ex2: Store the three component in separate vector
-  
+wind_trend <- wind_decomposed$trend
+wind_seasonal <- wind_decomposed$seasonal
+wind_random <- wind_decomposed$random
 
 #Ex3: Create one data frame with all three vector and the Date columns from wind_data
-
+wind_df <- data.frame(Date = wind_data$DATE, Trend = wind_trend,
+                      Seasonal = wind_seasonal, Random = wind_random)
 
 #Ex4: Inspect the data frame using head() and tail()
-
-
+head(wind_df, 10)
+tail(wind_df, 10)
 
 # Discuss the results
 
@@ -128,13 +132,27 @@ Additional info on decompose()
 
 Discussion: Why the missing values?? 
 
+Again, we see the 6 missing values at the beginning and end of the data frame
+due to the differencing method that is used to find the trend component.
+
 ## Coding challenge
 ```{r}
-
 #Ex5: Try to reproduce the trend component from decompose().
+t <- seq(from = 1, to = nrow(wind_data))
+trend_lm <- lm(clean_wind_data ~ t)
+trend_component <- predict(trend_lm, newdata = data.frame(t = t))
 
 #Ex6: Try to reproduce the seasonal component from decompose().
-
-
+dummies <- seasonaldummy(clean_wind_data)
+seasonal_lm <- lm(clean_wind_data ~ dummies)
+seasonal_coef <- summary(seasonal_lm)$coefficients[,1]
+seasonal_component <- dummies %*% seasonal_coef[2:12] + seasonal_coef[1]
 ```
 
+They do not match, which is unsurprising because we have only modeled trends
+by hand as a line. The `decompose` function, in contrast, uses differencing
+to identify the trend component.
+
+The seasonal component looks like it has been demeaned by the `decompose` 
+function. Perhaps, the detrending is done first and the remaining time series
+is then deseasoned.
