@@ -94,7 +94,8 @@ ggplot(data = data_small, mapping = aes(x = Month)) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-In the original series, we see a clear upward trend over time. In the 
+In the original series, we see a clear upward trend over time with some
+sinusoidal-looking behavior. In the 
 differenced series, we see no such trend. The trend line for the differenced
 series is approximately horizontal near y = 0.
 
@@ -133,6 +134,7 @@ remove the first observations for the original series and the detrended by
 regression series to build the new data frame.
 
 **Notes:** 
+
 - Rather than remove the first row (and throw away data), I just
 added an NA value to the differenced series
 - Let's refer to the "detrended by regression" series simply as `Detrended`
@@ -169,7 +171,7 @@ ggplot(data = df_long, mapping = aes(x = Month, y = value, color = name)) +
 This comparison is quite interesting! Both of our detrending methods remove
 the upward trend from the original series. However, our previous method of
 detrending (i.e., linear regression) produces a series with much larger 
-variation around its mean.
+variation around its mean, maintaining the wave-like appearance
 
 ### Q5
 
@@ -190,6 +192,7 @@ plot_acf <- function(ts, lag_amt, title = "ACF") {
   acf_plt <- ggplot(data = acf_data, mapping = aes(x = lag, y = acf)) + 
     geom_bar(stat = 'identity') +
     labs(x = 'Lag', y = '', title = title) +
+    coord_cartesian(ylim = c(-0.5, 1)) +
     theme_bw() +
     theme(plot.title = element_text(hjust = 0.5),
           axis.title.y = element_blank())
@@ -207,9 +210,10 @@ original_acf + detrend_acf + differenced_acf
 ```
 
 The differencing method was much more effective at eliminating the trend. This
-result is evident in the much smaller ACF values for the differenced series
+result is evident in the much smaller ACF values (at most lags) 
+for the differenced series
 relative to the other two. We should note, however, that the differenced series
-still shows signs of a seasonal trend, as evidenced by the relatively large
+still shows signs of a seasonal trend, as seen in the relatively large
 ACF values at lags 12, 24, and 36 (corresponding to the same month in future
 years).
 
@@ -245,13 +249,14 @@ presence of a stochastic trend.
 The presence of the stochastic trend aligns with our observations about the 
 time series detrended by linear regression:
 
-- The series still exhibits significant variation from the mean (for long
-periods of time)
+- The series still exhibits significant variation from the mean over long
+stretches of time (producing the wave-like appearance)
 - ACF values are still quite high (though not as high as values seen in the 
 original series)
 
-The differenced time series displays more desirable properties (as described
-in previous questions), which makes sense, given that differencing can
+The differenced time series displays more desirable properties (e.g., looks more
+like random noise scattered around the line y = 0). This result makes sense, 
+given that differencing can
 be effective at removing stochastic trends.
 
 ### Q7
@@ -273,6 +278,9 @@ yearly_matrix[10:12, 49] <- c(NA, NA, NA)
 
 # Lastly, aggregate the series by taking column means
 yearly_means <- colMeans(yearly_matrix, na.rm = T)
+
+# Display first 6 yearly means
+head(yearly_means)
 ```
 
 ### Q8
@@ -298,5 +306,7 @@ print(adftest)
 
 Yes, the results from these tests are in agreement with the test results for
 the non-aggregated results. The Mann-Kendall and Spearman correlation tests
-suggest the presence of a deterministic trend, while the Augmented Dickey-Fuller
-test suggests the presence of a stochastic trend.
+suggest the presence of a deterministic trend (i.e., reject the null
+hypothesis), while the Augmented Dickey-Fuller
+test suggests the presence of a stochastic trend (i.e., fail to reject the
+null hypothesis).
