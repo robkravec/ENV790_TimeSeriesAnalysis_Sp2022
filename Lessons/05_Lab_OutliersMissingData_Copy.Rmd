@@ -156,3 +156,10 @@ to identify the trend component.
 The seasonal component looks like it has been demeaned by the `decompose` 
 function. Perhaps, the detrending is done first and the remaining time series
 is then deseasoned.
+
+Luana told us that trend component is fit in `decompose` using a moving average
+model (take into account previous 6 and next 6 observations to take average 
+for monthly data, which has period of 12 months). This process explains why
+we have 6 NA values for the trend at the beginning and end of the series. Then,
+seasonal component is calculated in the same way that we were taught on the 
+`original - trend` series.
