@@ -40,7 +40,7 @@ For this module we will continue to work with the electricity retail price in US
 ```{r}
 
 #Importing time series data from text file#
-electricity_price <- read.csv(file="./Data/Average_retail_price_of_electricity_United_States_monthly.csv",header=TRUE,skip=4)
+electricity_price <- read.csv(file="../Data/Average_retail_price_of_electricity_United_States_monthly.csv",header=TRUE,skip=4)
 
 #Inspect data
 head(electricity_price)
@@ -215,14 +215,14 @@ When forecasting with ARIMA models, first you will need to fit the model with th
 SARIMA_autofit <- auto.arima(ts_electricity_price[,"All.sectors"])
 print(SARIMA_autofit)
 
-SARIMA_forecast <- forecast(object = SARIMA_autofit, h = 36)
+SARIMA_forecast <- forecast::forecast(object = SARIMA_autofit, h = 36)
 plot(SARIMA_forecast)
 
 # Model 10:  ARIMA on deseasonal data
 ARIMA_autofit <- auto.arima(deseasonal_allsectors_price, max.D = 0, max.P = 0, max.Q = 0)
 print(ARIMA_autofit)
 
-ARIMA_forecast <- forecast(object = ARIMA_autofit, h = 36)
+ARIMA_forecast <- forecast::forecast(object = ARIMA_autofit, h = 36)
 plot(ARIMA_forecast)
 ```
 
