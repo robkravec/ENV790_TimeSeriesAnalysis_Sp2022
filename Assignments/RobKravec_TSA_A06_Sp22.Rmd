@@ -34,7 +34,8 @@ function (ACF) plot and the partial sample autocorrelation function
 \item AR(2)
 
 > Answer: The AR(2) model will show a slow decay for its ACF plot and have
-a cutoff on the PACF plot after two lags. By "cutoff," I mean that the first two 
+a cutoff on the PACF plot after two lags. By "cutoff," I mean that only 
+the first two 
 lags on the PACF plot will have PACF values (much) greater than the dashed
 lines representing a cutoff based on standard error values.
 
@@ -222,5 +223,5 @@ component of this series. For
 $q = 1$, we would expect an ACF cutoff at lag 1 and a slow decay on the PACF
 plot. While the lag 1 ACF cutoff is quite visible, there are some additional
 features that might inhibit our ability to accurately determine the MA 
-orders (seasonal and non-seasonal) or the series (e.g., large ACF values
+orders (seasonal and non-seasonal) of the series (e.g., large ACF values
 at lags 11, 13 and large PACF value at lag 11).
