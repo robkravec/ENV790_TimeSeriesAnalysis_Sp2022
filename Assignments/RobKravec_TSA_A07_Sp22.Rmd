@@ -150,9 +150,14 @@ to print.
 
 ```{r q5}
 q5 <- Arima(gas_deseason, order = c(1,1,0), 
-            include.drift = T, include.mean = T)
+            include.drift = T)
 q5
 ```
+
+We don't need to include a mean term in the model because the series will
+be differenced once. Including a drift term allows for small deviations
+from a mean of zero, which is appropriate for a series that has only been
+differenced once.
 
 ### Q6
 
@@ -198,8 +203,7 @@ average term, as evidenced from the relatively large value at lag 12 ($Q = 1$).
 ```{r q7-model}
 # No drift included, per warning message from R about no drift term allowed
 # for order of difference > 1
-q7 <- Arima(gas_deseason, order = c(1,1,1), seasonal = c(0,1,1), 
-            include.drift = F, include.mean = T)
+q7 <- Arima(gas_deseason, order = c(1,1,1), seasonal = c(0,1,1))
 q7
 ```
 
